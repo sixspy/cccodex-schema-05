@@ -1,0 +1,12 @@
+{
+  "label": "schema-05",
+  "port": 7640,
+  "login_url": "http://127.0.0.1:7640/login",
+  "http_status": 200,
+  "checks": [
+    "含登录相关文案",
+    "含密码表单线索"
+  ],
+  "passed": true,
+  "checked_at": "2026-11-19T00:17:38+08:00"
+}
