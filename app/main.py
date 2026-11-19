@@ -8,10 +8,17 @@ from app.config import Config
 from app.db import init_db
 from app.services import (
     apply_contract,
+    choose_mode,
+    get_contract,
     list_contracts,
+    list_orchestration,
     list_reports,
+    list_residuals,
+    residual_detail,
+    resume_residual,
     run_breaking_check,
     run_reconcile,
+    verify_residual,
 )
 from app.services.errors import ServiceError
 
@@ -36,8 +43,15 @@ def create_app(db_path: str | None = None) -> web.Application:
     app.router.add_post("/api/logout", api_logout)
     app.router.add_get("/api/meta", api_meta)
     app.router.add_get("/api/contracts", api_contracts)
+    app.router.add_get("/api/contracts/{cid}", api_contract)
     app.router.add_post("/api/contracts/{cid}/breaking-check", api_breaking)
     app.router.add_post("/api/contracts/{cid}/apply", api_apply)
+    app.router.add_get("/api/residuals", api_residuals)
+    app.router.add_get("/api/residuals/{rid}", api_residual)
+    app.router.add_post("/api/residuals/{rid}/mode", api_residual_mode)
+    app.router.add_post("/api/residuals/{rid}/resume", api_residual_resume)
+    app.router.add_post("/api/residuals/{rid}/verify", api_residual_verify)
+    app.router.add_get("/api/orchestration-log", api_orchestration_log)
     app.router.add_get("/api/reconcile-reports", api_reports)
     app.router.add_post("/api/reconcile-reports", api_reconcile)
     return app
@@ -123,6 +137,15 @@ async def api_contracts(request: web.Request):
     return json_resp({"items": list_contracts(request.app.get("db_path"))})
 
 
+async def api_contract(request: web.Request):
+    try:
+        require_user(request)
+        cid = int(request.match_info["cid"])
+        return json_resp({"contract": get_contract(cid, request.app.get("db_path"))})
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
+
+
 async def api_breaking(request: web.Request):
     try:
         require_user(request)
@@ -136,9 +159,71 @@ async def api_apply(request: web.Request):
     try:
         require_user(request)
         cid = int(request.match_info["cid"])
-        return json_resp({"contract": apply_contract(cid, request.app.get("db_path"))})
+        try:
+            body = await request.json() if request.can_read_body else {}
+        except ValueError:
+            body = {}
+        fault = body.get("fault") if isinstance(body, dict) else None
+        result = apply_contract(cid, request.app.get("db_path"), fault=fault)
+        if result.get("half_applied"):
+            return json_resp(result, 202)
+        return json_resp(result)
     except ServiceError as exc:
         return json_resp({"error": exc.message}, exc.status_code)
+
+
+async def api_residuals(request: web.Request):
+    try:
+        require_user(request)
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
+    return json_resp(list_residuals(request.app.get("db_path")))
+
+
+async def api_residual(request: web.Request):
+    try:
+        require_user(request)
+        rid = int(request.match_info["rid"])
+        return json_resp({"residual": residual_detail(rid, request.app.get("db_path"))})
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
+
+
+async def api_residual_mode(request: web.Request):
+    try:
+        require_user(request)
+        rid = int(request.match_info["rid"])
+        body = await request.json()
+        mode = str(body.get("mode") or "").strip()
+        return json_resp({"residual": choose_mode(rid, mode, request.app.get("db_path"))})
+    except ServiceError as exc:
+        return json_resp({"error": exc.message, "data": exc.data}, exc.status_code)
+
+
+async def api_residual_resume(request: web.Request):
+    try:
+        require_user(request)
+        rid = int(request.match_info["rid"])
+        return json_resp({"residual": resume_residual(rid, request.app.get("db_path"))})
+    except ServiceError as exc:
+        return json_resp({"error": exc.message, "data": exc.data}, exc.status_code)
+
+
+async def api_residual_verify(request: web.Request):
+    try:
+        require_user(request)
+        rid = int(request.match_info["rid"])
+        return json_resp({"verification": verify_residual(rid, request.app.get("db_path"))})
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
+
+
+async def api_orchestration_log(request: web.Request):
+    try:
+        require_user(request)
+    except ServiceError as exc:
+        return json_resp({"error": exc.message}, exc.status_code)
+    return json_resp({"items": list_orchestration(None, request.app.get("db_path"))})
 
 
 async def api_reports(request: web.Request):

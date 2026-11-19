@@ -54,6 +54,16 @@ button.ghost { background: transparent; }
   display:inline-block; padding: 0.1rem 0.55rem; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent); font-size: 0.8rem;
 }
+.chip-residual { background: #f6dcc0; color: #8a4b12; border: 1px dashed #c98b4a; }
+.chip-occupies { background: #f7d9d3; color: var(--danger); }
+.chip-done { background: var(--accent-soft); color: var(--accent); }
+.chip-clean { background: #e6eefc; color: #2f4c8a; }
+.chip-snapshot { background: #f3e6ff; color: #613a8a; }
 label { display:block; margin: 0.7rem 0; }
-input { width:100%; margin-top: 0.3rem; padding: 0.55rem 0.7rem; border-radius: 10px; border:1px solid var(--line); font: inherit; }
+input, select { width:100%; margin-top: 0.3rem; padding: 0.55rem 0.7rem; border-radius: 10px; border:1px solid var(--line); font: inherit; background:#fff; }
 .row { display:flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+.section { margin: 1.2rem 0 0.4rem; font-size: 1rem; color: var(--accent); }
+button[disabled] { opacity: 0.45; cursor: not-allowed; }
+.residual { border-left: 4px solid #c98b4a; }
+.residual ul { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+details summary { cursor: pointer; font-size: 0.85rem; }
